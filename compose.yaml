@@ -1,0 +1,36 @@
+services:
+  database-migration:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      RECRUITAIR_DB_USERNAME: recruitair
+      RECRUITAIR_DB_PASSWORD: recruitairpass_1234
+      RECRUITAIR_DB_HOST: database
+      RECRUITAIR_DB_PORT: 5432
+      RECRUITAIR_DB_DATABASE: recruitair
+    depends_on:
+      database:
+        condition: service_healthy
+    command: ["alembic", "upgrade", "head"]
+
+  
+  database:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: recruitair
+      POSTGRES_PASSWORD: recruitairpass_1234
+      POSTGRES_DB: recruitair
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recruitair -d recruitair"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - edc-db-data:/var/lib/postgresql/data
+
+
+volumes:
+  edc-db-data:
