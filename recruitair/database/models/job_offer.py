@@ -19,11 +19,7 @@ class JobOfferStatus(str, Enum):
 class JobOffer(Base):
     __tablename__ = "job_offers"
 
-    id: int = Column(Integer, primary_key=True, index=True)
-    text: str = Column(String, nullable=False)
-    status: JobOfferStatus = Column(
-        SQLAlchemyEnum(JobOfferStatus), nullable=False, index=True, default=JobOfferStatus.PENDING
-    )
-    created_at: datetime = Column(
-        TIMESTAMP(timezone=True), nullable=False, server_default=sql_text("CURRENT_TIMESTAMP")
-    )
+    id = Column(Integer, primary_key=True, index=True)
+    text = Column(String, nullable=False)
+    status = Column(SQLAlchemyEnum(JobOfferStatus), nullable=False, index=True, default=JobOfferStatus.PENDING)
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=sql_text("CURRENT_TIMESTAMP"))

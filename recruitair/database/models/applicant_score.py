@@ -13,7 +13,7 @@ from . import Base
 class ApplicantScore(Base):
     __tablename__ = "applicant_scores"
 
-    criteria_id: int = Column(Integer, ForeignKey("criteria.id"), nullable=False, index=True, primary_key=True)
-    applicant_id: int = Column(Integer, ForeignKey("applicants.id"), nullable=False, index=True, primary_key=True)
-    score: float = Column(Float, nullable=False)
-    created_at: datetime = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("NOW()"))
+    criteria_id = Column(Integer, ForeignKey("criteria.id"), nullable=False, index=True, primary_key=True)
+    applicant_id = Column(Integer, ForeignKey("applicants.id"), nullable=False, index=True, primary_key=True)
+    score = Column(Float, nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("NOW()"))

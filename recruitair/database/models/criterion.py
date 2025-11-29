@@ -13,8 +13,8 @@ from . import Base
 class Criterion(Base):
     __tablename__ = "criteria"
 
-    id: int = Column(Integer, primary_key=True, index=True)
-    offer_id: int = Column(Integer, ForeignKey("job_offers.id"), nullable=False, index=True)
-    description: str = Column(String, nullable=False)
-    importance: float = Column(Float, nullable=False)
-    created_at: datetime = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("NOW()"))
+    id = Column(Integer, primary_key=True, index=True)
+    offer_id = Column(Integer, ForeignKey("job_offers.id"), nullable=False, index=True)
+    description = Column(String, nullable=False)
+    importance = Column(Float, nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("NOW()"))
