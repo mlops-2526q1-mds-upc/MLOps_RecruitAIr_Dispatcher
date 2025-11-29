@@ -19,7 +19,7 @@ async def evaluate_applicant(applicant: Applicant, criterion: Criterion, session
         timeout=ClientTimeout(settings.http_timeout),
     ) as http_client:
         async with http_client.post(
-            "/eval",
+            "eval",
             json={"criteria_description": criterion.description, "applicant_cv": applicant.cv},
         ) as response:
             response.raise_for_status()

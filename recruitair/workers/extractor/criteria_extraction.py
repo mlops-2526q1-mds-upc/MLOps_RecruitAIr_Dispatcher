@@ -25,7 +25,7 @@ async def extract_criteria(job_offer: JobOffer, session: AsyncSession) -> None:
         timeout=ClientTimeout(settings.http_timeout),
     ) as http_client:
         async with http_client.post(
-            "/eval",
+            "eval",
             json={"offer_text": job_offer.text},
         ) as response:
             response.raise_for_status()
