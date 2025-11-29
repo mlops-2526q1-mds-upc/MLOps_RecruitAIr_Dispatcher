@@ -13,6 +13,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: migration
     environment:
       <<: *default-environment
     depends_on:
@@ -38,10 +39,11 @@ services:
       - edc-db-data:/var/lib/postgresql/data
 
 
-  extractor-dispatcher:
+  extractor-worker:
     build:
       context: .
       dockerfile: Dockerfile
+      target: extractor-worker
     environment:
       <<: *default-environment
       RECRUITAIR_EXTRACTOR_API_BASE_URL: http://mock-api:3100/extractor/
@@ -51,12 +53,12 @@ services:
         condition: service_healthy
       database-migration:
         condition: service_completed_successfully
-    command: ["python", "-m", "recruitair.workers.extractor"]
 
-  evaluator-dispatcher:
+  evaluator-worker:
     build:
       context: .
       dockerfile: Dockerfile
+      target: evaluator-worker
     environment:
       <<: *default-environment
       RECRUITAIR_EVALUATOR_API_BASE_URL: http://mock-api:3100/evaluator/
@@ -66,7 +68,6 @@ services:
         condition: service_healthy
       database-migration:
         condition: service_completed_successfully
-    command: ["python", "-m", "recruitair.workers.evaluator"]
 
   mock-api:
     image: mocksserver/main

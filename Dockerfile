@@ -46,5 +46,32 @@ RUN --mount=type=bind,from=docker.io/astral/uv:latest,source=/uv,target=/bin/uv 
 # Switch to the non-privileged user to run the application.
 USER appuser
 
-# Copy the source code into the container.
-COPY . .
+
+FROM deps AS extractor-worker
+
+COPY --exclude=alembic/* --exclude=recruitair/workers/evaluator/* . .
+
+CMD ["python", "-m", "recruitair.workers.extractor"]
+
+
+FROM deps AS evaluator-worker
+
+COPY --exclude=alembic/* --exclude=recruitair/workers/extractor/* . .
+
+CMD ["python", "-m", "recruitair.workers.evaluator"]
+
+
+FROM deps AS api
+
+COPY --exclude=alembic/* --exclude=recruitair/workers/* . .
+
+EXPOSE 8080
+
+CMD ["uvicorn", "recruitair.api:app", "--host", "0.0.0.0", "--port", "8080"]
+
+
+FROM deps AS migration
+
+COPY --exclude=recruitair/workers/* --exclude=recruitair/api/* . .
+
+CMD ["alembic", "upgrade", "head"]
