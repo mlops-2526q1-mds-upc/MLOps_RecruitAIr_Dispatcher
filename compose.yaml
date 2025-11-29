@@ -1,14 +1,20 @@
+version: '3.8'
+
+# Common environment variables
+x-default-environment: &default-environment
+  RECRUITAIR_DB_USERNAME: recruitair
+  RECRUITAIR_DB_PASSWORD: recruitairpass_1234
+  RECRUITAIR_DB_HOST: database
+  RECRUITAIR_DB_PORT: 5432
+  RECRUITAIR_DB_DATABASE: recruitair
+
 services:
   database-migration:
     build:
       context: .
       dockerfile: Dockerfile
     environment:
-      RECRUITAIR_DB_USERNAME: recruitair
-      RECRUITAIR_DB_PASSWORD: recruitairpass_1234
-      RECRUITAIR_DB_HOST: database
-      RECRUITAIR_DB_PORT: 5432
-      RECRUITAIR_DB_DATABASE: recruitair
+      <<: *default-environment
     depends_on:
       database:
         condition: service_healthy
@@ -30,6 +36,38 @@ services:
       retries: 5
     volumes:
       - edc-db-data:/var/lib/postgresql/data
+
+
+  extractor-dispatcher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      <<: *default-environment
+      RECRUITAIR_EXTRACTOR_API_BASE_URL: http://extractor-api:8000
+      RECRUITAIR_EXTRACTOR_API_BEARER_TOKEN: your_extractor_api_token_here
+    depends_on:
+      database:
+        condition: service_healthy
+      database-migration:
+        condition: service_completed_successfully
+    command: ["python", "-m", "recruitair.workers.extractor"]
+
+  evaluator-dispatcher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      <<: *default-environment
+      RECRUITAIR_EVALUATOR_API_BASE_URL: http://evaluator-api:8000
+      RECRUITAIR_EVALUATOR_API_BEARER_TOKEN: your_evaluator_api_token_here
+    depends_on:
+      database:
+        condition: service_healthy
+      database-migration:
+        condition: service_completed_successfully
+    command: ["python", "-m", "recruitair.workers.evaluator"]
+
 
 
 volumes:
