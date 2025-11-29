@@ -42,7 +42,7 @@ async def get_batch(session: AsyncSession, batch_size: int) -> Sequence[Tuple[Ap
             text("SELECT pg_try_advisory_xact_lock(:lock_key)").bindparams(lock_key=hash((applicant.id, criterion.id)))
         )
         if lock_acquired.scalar():
-            batch.append((session, (applicant, criterion)))
+            batch.append((applicant, criterion))
     return batch
 
 
