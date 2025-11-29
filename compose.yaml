@@ -44,8 +44,8 @@ services:
       dockerfile: Dockerfile
     environment:
       <<: *default-environment
-      RECRUITAIR_EXTRACTOR_API_BASE_URL: http://extractor-api:8000
-      RECRUITAIR_EXTRACTOR_API_BEARER_TOKEN: your_extractor_api_token_here
+      RECRUITAIR_EXTRACTOR_API_BASE_URL: http://mock-api:3100/extractor/
+      RECRUITAIR_EXTRACTOR_API_BEARER_TOKEN: mock_api_token
     depends_on:
       database:
         condition: service_healthy
@@ -59,8 +59,8 @@ services:
       dockerfile: Dockerfile
     environment:
       <<: *default-environment
-      RECRUITAIR_EVALUATOR_API_BASE_URL: http://evaluator-api:8000
-      RECRUITAIR_EVALUATOR_API_BEARER_TOKEN: your_evaluator_api_token_here
+      RECRUITAIR_EVALUATOR_API_BASE_URL: http://mock-api:3100/evaluator/
+      RECRUITAIR_EVALUATOR_API_BEARER_TOKEN: mock_api_token
     depends_on:
       database:
         condition: service_healthy
@@ -68,7 +68,10 @@ services:
         condition: service_completed_successfully
     command: ["python", "-m", "recruitair.workers.evaluator"]
 
-
+  mock-api:
+    image: mocksserver/main
+    volumes:
+      - ./assets/api-mocks:/input
 
 volumes:
   edc-db-data:

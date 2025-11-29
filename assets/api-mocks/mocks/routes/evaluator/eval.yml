@@ -1,0 +1,12 @@
+- id: "evaluator-eval"
+  url: /evaluator/eval
+  method: POST
+  variants:
+    - id: "default"
+      type: "json"
+      options:
+        status: 200
+        headers:
+          Content-Type: application/json
+        body: 
+          score: 0.85

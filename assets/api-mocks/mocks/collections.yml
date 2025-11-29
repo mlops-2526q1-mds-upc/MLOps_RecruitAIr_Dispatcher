@@ -1,0 +1,4 @@
+- id: "default"
+  routes:
+  - "evaluator-eval:default"
+  - "extractor-eval:default"
