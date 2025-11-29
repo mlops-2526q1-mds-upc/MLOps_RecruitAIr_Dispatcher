@@ -1,4 +1,4 @@
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,7 +16,7 @@ async def evaluate_applicant(applicant: Applicant, criterion: Criterion, session
     async with ClientSession(
         str(settings.evaluator_api_base_url),
         headers={"Authorization": f"Bearer {settings.evaluator_api_bearer_token}"},
-        timeout=settings.http_timeout,
+        timeout=ClientTimeout(settings.http_timeout),
     ) as http_client:
         async with http_client.post(
             "/eval",

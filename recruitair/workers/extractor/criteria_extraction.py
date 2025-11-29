@@ -1,6 +1,6 @@
 from typing import List
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,7 +22,7 @@ async def extract_criteria(job_offer: JobOffer, session: AsyncSession) -> None:
     async with ClientSession(
         str(settings.extractor_api_base_url),
         headers={"Authorization": f"Bearer {settings.extractor_api_bearer_token}"},
-        timeout=settings.http_timeout,
+        timeout=ClientTimeout(settings.http_timeout),
     ) as http_client:
         async with http_client.post(
             "/eval",
