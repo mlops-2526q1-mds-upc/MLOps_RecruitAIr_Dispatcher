@@ -1,0 +1,16 @@
+- id: "extractor-eval"
+  url: /extractor/eval
+  method: POST
+  variants:
+    - id: "default"
+      type: "json"
+      options:
+        status: 200
+        headers:
+          Content-Type: application/json
+        body:
+          criteria: 
+            - {"description": "Sample Criteria 1", "importance": 0.3}
+            - {"description": "Sample Criteria 2", "importance": 0.4}
+            - {"description": "Sample Criteria 3", "importance": 0.5}
+            - {"description": "Sample Criteria 4", "importance": 0.6}
