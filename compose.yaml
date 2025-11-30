@@ -76,9 +76,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: api
     environment:
       <<: *default-environment
-      DATABASE_URL: "postgresql://recruitair:recruitairpass_1234@database:5432/recruitair"
     depends_on:
       database:
         condition: service_healthy
@@ -88,7 +88,6 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
-    command: uvicorn recruitair.api.main:app --host 0.0.0.0 --port 8000
 
 volumes:
   edc-db-data:
