@@ -19,6 +19,7 @@ tags_metadata = [
     {"name": "Criteria", "description": "Operations related to criteria extracted from job offers."},
     {"name": "Applicants", "description": "Operations related to applicants applying for job offers."},
     {"name": "Scores", "description": "Operations related to scores assigned to applicants based on criteria."},
+    {"name": "Health", "description": "Health check endpoint."},
 ]
 
 try:
@@ -33,5 +34,11 @@ except importlib.metadata.PackageNotFoundError:
     app_version = pyproject_data["project"]["version"]
 
 app = FastAPI(title="RecruitAIr API", version=app_version, openapi_tags=tags_metadata)
+
+
+@app.get("/health", tags=["Health"])
+def health_check():
+    return {"status": "ok"}
+
 
 from .resources import *
