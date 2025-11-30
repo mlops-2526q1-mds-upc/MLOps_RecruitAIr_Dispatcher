@@ -9,19 +9,6 @@ x-default-environment: &default-environment
   RECRUITAIR_DB_DATABASE: recruitair
 
 services:
-  database-migration:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: migration
-    environment:
-      <<: *default-environment
-    depends_on:
-      database:
-        condition: service_healthy
-    command: ["alembic", "upgrade", "head"]
-
-  
   database:
     image: postgres:16
     environment:
@@ -38,6 +25,17 @@ services:
     volumes:
       - edc-db-data:/var/lib/postgresql/data
 
+  database-migration:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migration
+    environment:
+      <<: *default-environment
+    depends_on:
+      database:
+        condition: service_healthy
+    command: ["alembic", "upgrade", "head"]
 
   extractor-worker:
     build:
@@ -73,6 +71,23 @@ services:
     image: mocksserver/main
     volumes:
       - ./assets/api-mocks:/input
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    environment:
+      <<: *default-environment
+    depends_on:
+      database:
+        condition: service_healthy
+      database-migration:
+        condition: service_completed_successfully
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
 
 volumes:
   edc-db-data:
