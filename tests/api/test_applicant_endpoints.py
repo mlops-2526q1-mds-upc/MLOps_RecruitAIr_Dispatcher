@@ -88,6 +88,22 @@ def test_get_applicants_for_offer(client: TestClient):
         assert applicant["cv"] == cv_text
         assert applicant["offer_id"] == offer_id
 
+    # Retrieve applicants filtered by cv content
+    filter_text = "Mary Anne"
+    response = client.get(f"/job_offers/{offer_id}/applicants", params={"cv": filter_text})
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "applicants" in data
+    assert len(data["applicants"]) == 1
+    applicant = data["applicants"][0]
+    assert "cv" in applicant
+    assert "id" in applicant
+    assert "offer_id" in applicant
+    assert "created_at" in applicant
+    assert applicant["cv"] == cv_texts[1]
+    assert applicant["offer_id"] == offer_id
+
 
 def test_get_applicants_invalid_offer(client: TestClient):
     invalid_offer_id = 9999
