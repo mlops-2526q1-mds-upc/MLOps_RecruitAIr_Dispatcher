@@ -27,7 +27,7 @@ def test_create_job_offer_invalid(client: TestClient):
     } == response.json()
 
 
-def test_list_all_job_offers(client: TestClient):
+def test_list_job_offers(client: TestClient):
     # First, create several job offers to ensure there's at least one
     texts = []
     for buzz_word_1 in ["AI", "Blockchain", "Cloud", "DevOps", "Full-Stack", "Data"]:
@@ -38,7 +38,6 @@ def test_list_all_job_offers(client: TestClient):
 
     response = client.get("/job_offers", params={"offset": 0, "limit": 1000})
     assert response.status_code == 200
-
     data = response.json()
     assert "job_offers" in data
     assert isinstance(data["job_offers"], list)
@@ -46,6 +45,32 @@ def test_list_all_job_offers(client: TestClient):
     for offer in data["job_offers"]:
         assert "id" in offer
         assert "text" in offer
+        assert "status" in offer
+        assert "created_at" in offer
+
+    response = client.get("/job_offers", params={"offset": 0, "limit": 1000, "status": "PENDING"})
+    assert response.status_code == 200
+    data = response.json()
+    assert "job_offers" in data
+    assert isinstance(data["job_offers"], list)
+    assert len(data["job_offers"]) == len(texts)  # None have been updated yet
+    for offer in data["job_offers"]:
+        assert "id" in offer
+        assert "text" in offer
+        assert "status" in offer
+        assert offer["status"] == "PENDING"
+        assert "created_at" in offer
+
+    response = client.get("/job_offers", params={"offset": 0, "limit": 1000, "text": "Data"})
+    assert response.status_code == 200
+    data = response.json()
+    assert "job_offers" in data
+    assert isinstance(data["job_offers"], list)
+    assert len(data["job_offers"]) == len(list(filter(lambda t: "Data" in t, texts)))
+    for offer in data["job_offers"]:
+        assert "id" in offer
+        assert "text" in offer
+        assert "Data" in offer["text"]
         assert "status" in offer
         assert "created_at" in offer
 
