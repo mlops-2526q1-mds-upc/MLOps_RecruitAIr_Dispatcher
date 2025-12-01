@@ -45,8 +45,11 @@ jobs:
         with:
           header: "## :white_check_mark: Test Coverage Report"
           message: |
-            The test coverage report has been generated. You can download and view it [here][${{ steps.upload-coverage.outputs.artifact-url }}].
+            ### All tests have passed!
+
             ![Coverage Badge](https://img.shields.io/badge/coverage-${{ steps.run-tests.outputs.coverage }}-brightgreen)
+
+            You can download and view the test coverage report [here](${{ steps.upload-coverage.outputs.artifact-url }}).
 
   test-build:
     needs: run-tests
