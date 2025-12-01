@@ -27,10 +27,27 @@ def test_create_job_offer_invalid(client: TestClient):
     } == response.json()
 
 
-# def test_get_job_offers():
-#     response = client.get("/job_offers?text=Data")
-#     assert response.status_code == 200
-#     assert "job_offers" in response.json()
+def test_list_all_job_offers(client: TestClient):
+    # First, create several job offers to ensure there's at least one
+    texts = []
+    for buzz_word_1 in ["AI", "Blockchain", "Cloud", "DevOps", "Full-Stack", "Data"]:
+        for buzz_word_2 in ["Engineer", "Specialist", "Architect", "Analyst", "Consultant"]:
+            text = f"{buzz_word_1} {buzz_word_2}"
+            texts.append(text)
+            client.post("/job_offers", json={"text": text})
+
+    response = client.get("/job_offers", params={"offset": 0, "limit": 1000})
+    assert response.status_code == 200
+
+    data = response.json()
+    assert "job_offers" in data
+    assert isinstance(data["job_offers"], list)
+    assert len(data["job_offers"]) == len(texts)
+    for offer in data["job_offers"]:
+        assert "id" in offer
+        assert "text" in offer
+        assert "status" in offer
+        assert "created_at" in offer
 
 
 # def test_update_job_offer():
