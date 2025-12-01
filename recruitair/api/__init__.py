@@ -5,15 +5,9 @@ from typing import Annotated
 from fastapi import Depends, FastAPI
 from sqlalchemy.orm import Session
 
-from ..database import get_session
+from ..database import get_db_session
 
-
-def _get_db_session():
-    with get_session() as session:
-        yield session
-
-
-SessionDep = Annotated[Session, Depends(_get_db_session)]
+SessionDep = Annotated[Session, Depends(get_db_session)]
 
 tags_metadata = [
     {"name": "Job Offers", "description": "Operations related to job offers."},

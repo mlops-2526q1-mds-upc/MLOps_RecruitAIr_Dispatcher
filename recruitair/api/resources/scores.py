@@ -4,9 +4,14 @@ from typing import Any, Dict, List, Optional
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from ...database.models import Applicant, ApplicantScore, Criterion, JobOffer
+from ...database.models import (
+    Applicant,
+    ApplicantScore,
+    ApplicantScoreSchema,
+    Criterion,
+    JobOffer,
+)
 from .. import SessionDep, app
-from ..schemas import ApplicantScoreSchema
 
 
 class GetApplicantScoresResponse(BaseModel):
@@ -28,7 +33,7 @@ def get_applicant_scores(offer_id: int, applicant_id: int, db: SessionDep) -> Ge
     if not scores:
         raise HTTPException(status_code=404, detail="Scores not found for the applicant")
 
-    return GetApplicantScoresResponse(scores=scores)
+    return GetApplicantScoresResponse(scores=[score.to_dict() for score in scores])
 
 
 class GetApplicantScoreResponse(BaseModel):
@@ -60,7 +65,7 @@ def get_applicant_score(
     if not score:
         raise HTTPException(status_code=404, detail="Score has not been computed yet")
 
-    return GetApplicantScoreResponse(score=score)
+    return GetApplicantScoreResponse(score=score.to_dict())
 
 
 class UpdateApplicantScoreRequest(BaseModel):
@@ -100,4 +105,4 @@ def update_applicant_score(
     db.commit()
     db.refresh(score)
 
-    return UpdateApplicantScoreResponse(score=score)
+    return UpdateApplicantScoreResponse(score=score.to_dict())

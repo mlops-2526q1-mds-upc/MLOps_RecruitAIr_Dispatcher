@@ -5,9 +5,8 @@ from pydantic import BaseModel, Field
 
 from recruitair.database.models.applicant_score import ApplicantScore
 
-from ...database.models import Criterion, JobOffer
+from ...database.models import Criterion, CriterionSchema, JobOffer
 from .. import SessionDep, app
-from ..schemas import CriterionSchema
 
 
 class CriteriaItem(BaseModel):
@@ -27,7 +26,7 @@ def get_job_offer_criteria(offer_id: int, db: SessionDep) -> GetJobOfferCriteria
     if not offer:
         raise HTTPException(status_code=404, detail="Offer not found")
     criteria = db.query(Criterion).filter(Criterion.offer_id == offer_id).all()
-    return GetJobOfferCriteriaResponse(criteria=criteria)
+    return GetJobOfferCriteriaResponse(criteria=[criterion.to_dict() for criterion in criteria])
 
 
 class AddJobOfferCriteriaResponse(BaseModel):
@@ -48,7 +47,9 @@ def add_job_offer_criteria(offer_id: int, request: List[CriteriaItem], db: Sessi
     db.commit()
     for criterion in created_criteria:
         db.refresh(criterion)
-    return AddJobOfferCriteriaResponse(message="Criteria added successfully", criteria=created_criteria)
+    return AddJobOfferCriteriaResponse(
+        message="Criteria added successfully", criteria=[criterion.to_dict() for criterion in created_criteria]
+    )
 
 
 class UpdateCriterionRequest(BaseModel):
@@ -82,4 +83,4 @@ def update_criterion(
         criterion.importance = request.importance
     db.commit()
     db.refresh(criterion)
-    return UpdateCriterionResponse(message="Updated successfully", criterion=criterion)
+    return UpdateCriterionResponse(message="Updated successfully", criterion=criterion.to_dict())

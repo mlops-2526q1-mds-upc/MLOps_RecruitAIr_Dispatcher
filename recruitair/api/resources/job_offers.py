@@ -4,9 +4,8 @@ from typing import Any, Dict, List, Optional
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
-from ...database.models import JobOffer, JobOfferStatus
+from ...database.models import JobOffer, JobOfferSchema, JobOfferStatus
 from .. import SessionDep, app
-from ..schemas import JobOfferSchema
 
 
 class CreateJobOfferRequest(BaseModel):
@@ -28,7 +27,7 @@ def create_job_offer(request: CreateJobOfferRequest, db: SessionDep) -> CreateJo
     db.add(new_offer)
     db.commit()
     db.refresh(new_offer)
-    return CreateJobOfferResponse(message="Created successfully", job_offer=new_offer)
+    return CreateJobOfferResponse(message="Created successfully", job_offer=new_offer.to_dict())
 
 
 class ListJobOffersResponse(BaseModel):
@@ -52,7 +51,7 @@ def list_job_offers(
 
     results = query.order_by(JobOffer.id).offset(offset).limit(limit).all()
     cursor = offset + len(results)
-    return ListJobOffersResponse(job_offers=results, cursor=cursor)
+    return ListJobOffersResponse(job_offers=[offer.to_dict() for offer in results], cursor=cursor)
 
 
 class GetJobOfferResponse(BaseModel):
@@ -64,4 +63,4 @@ def get_job_offer(offer_id: int, db: SessionDep) -> GetJobOfferResponse:
     offer = db.query(JobOffer).filter(JobOffer.id == offer_id).first()
     if not offer:
         raise HTTPException(status_code=404, detail="Offer not found")
-    return GetJobOfferResponse(job_offer=offer)
+    return GetJobOfferResponse(job_offer=offer.to_dict())

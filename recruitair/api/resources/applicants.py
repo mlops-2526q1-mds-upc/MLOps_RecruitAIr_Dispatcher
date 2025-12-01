@@ -3,9 +3,8 @@ from typing import List, Optional
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
-from ...database.models import Applicant, JobOffer
+from ...database.models import Applicant, ApplicantSchema, JobOffer
 from .. import SessionDep, app
-from ..schemas import ApplicantSchema
 
 
 class CreateApplicantRequest(BaseModel):
@@ -35,7 +34,9 @@ def create_applicant(offer_id: int, request: List[CreateApplicantRequest], db: S
     db.commit()
     for applicant in created_applicants:
         db.refresh(applicant)
-    return CreateApplicantResponse(message="Created successfully", applicants=created_applicants)
+    return CreateApplicantResponse(
+        message="Created successfully", applicants=[applicant.to_dict() for applicant in created_applicants]
+    )
 
 
 class GetApplicantsResponse(BaseModel):
@@ -54,4 +55,4 @@ def get_applicant(
     if cv:
         query = query.filter(Applicant.cv.contains(cv))
     results = query.order_by(Applicant.id).offset(offset).limit(limit).all()
-    return GetApplicantsResponse(applicants=results)
+    return GetApplicantsResponse(applicants=[applicant.to_dict() for applicant in results])

@@ -10,9 +10,9 @@ Base = declarative_base()
 mapper_registry = registry()
 
 
-from .applicant import Applicant
-from .applicant_score import ApplicantScore
-from .criterion import Criterion
-from .job_offer import JobOffer, JobOfferStatus
+from .applicant import Applicant, ApplicantSchema
+from .applicant_score import ApplicantScore, ApplicantScoreSchema
+from .criterion import Criterion, CriterionSchema
+from .job_offer import JobOffer, JobOfferSchema, JobOfferStatus
 
 __all__ = ["Applicant", "ApplicantScore", "Criterion", "JobOffer", "JobOfferStatus"]
