@@ -75,14 +75,23 @@ def test_list_job_offers(client: TestClient):
         assert "created_at" in offer
 
 
-# def test_update_job_offer():
-#     # Create one first
-#     create = client.post("/job_offers", json={"text": "Backend Engineer"})
-#     offer_id = create.json()["job_offer"]["id"]
+def test_get_job_offer_by_id(client: TestClient):
+    # Create one first
+    create = client.post("/job_offers", json={"text": "Backend Engineer"})
 
-#     response = client.put(f"/job_offers/{offer_id}", json={"criteria": "Python"})
-#     assert response.status_code == 200
-#     assert "Updated successfully" in response.json()["message"]
+    new_offer = create.json()["job_offer"]
+    offer_id = new_offer["id"]
+
+    response = client.get(f"/job_offers/{offer_id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert "job_offer" in data
+    offer = data["job_offer"]
+    assert offer["id"] == offer_id
+    for key in new_offer:
+        assert offer[key] == new_offer[key]
+    for key in offer:
+        assert new_offer[key] == offer[key]
 
 
 # # ------------- APPLICANT TESTS ------------- #
