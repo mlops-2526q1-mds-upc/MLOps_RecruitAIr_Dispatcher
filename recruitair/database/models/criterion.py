@@ -5,7 +5,8 @@ from typing import Any, Dict, Optional
 from pydantic import BaseModel, Field
 from sqlalchemy import TIMESTAMP, Column
 from sqlalchemy import Enum as SQLAlchemyEnum
-from sqlalchemy import Float, ForeignKey, Integer, String, text
+from sqlalchemy import Float, ForeignKey, Integer, String
+from sqlalchemy import text as sql_text
 from sqlalchemy.dialects.postgresql import JSONB
 
 from . import Base
@@ -35,7 +36,7 @@ class Criterion(Base):
     offer_id = Column(Integer, ForeignKey("job_offers.id"), nullable=False, index=True)
     description = Column(String, nullable=False)
     importance = Column(Float, nullable=False)
-    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("NOW()"))
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=sql_text("CURRENT_TIMESTAMP"))
 
     def to_dict(self) -> CriterionSchema:
         return CriterionSchema(

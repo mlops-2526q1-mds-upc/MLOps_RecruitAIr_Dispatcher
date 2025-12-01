@@ -5,7 +5,8 @@ from typing import Any, Dict, Optional
 from pydantic import BaseModel, Field
 from sqlalchemy import TIMESTAMP, Column
 from sqlalchemy import Enum as SQLAlchemyEnum
-from sqlalchemy import Float, ForeignKey, Integer, String, text
+from sqlalchemy import Float, ForeignKey, Integer, String
+from sqlalchemy import text as sql_text
 from sqlalchemy.dialects.postgresql import JSONB
 
 from . import Base
@@ -32,7 +33,7 @@ class ApplicantScore(Base):
     criteria_id = Column(Integer, ForeignKey("criteria.id"), nullable=False, index=True, primary_key=True)
     applicant_id = Column(Integer, ForeignKey("applicants.id"), nullable=False, index=True, primary_key=True)
     score = Column(Float, nullable=False)
-    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("NOW()"))
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=sql_text("CURRENT_TIMESTAMP"))
 
     def to_dict(self) -> ApplicantScoreSchema:
         return ApplicantScoreSchema(

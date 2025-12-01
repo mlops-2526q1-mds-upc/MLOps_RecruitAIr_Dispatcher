@@ -29,18 +29,24 @@ def get_job_offer_criteria(offer_id: int, db: SessionDep) -> GetJobOfferCriteria
     return GetJobOfferCriteriaResponse(criteria=[criterion.to_dict() for criterion in criteria])
 
 
+class AddJobOfferCriteriaRequest(BaseModel):
+    criteria: List[CriteriaItem] = Field(..., description="List of criteria to be added to the job offer")
+
+
 class AddJobOfferCriteriaResponse(BaseModel):
     message: str = Field(..., description="Response message", examples=["Criteria added successfully"])
     criteria: List[CriterionSchema] = Field(..., description="List of added criteria")
 
 
 @app.post("/job_offers/{offer_id}/criteria", tags=["Criteria"])
-def add_job_offer_criteria(offer_id: int, request: List[CriteriaItem], db: SessionDep) -> AddJobOfferCriteriaResponse:
+def add_job_offer_criteria(
+    offer_id: int, request: AddJobOfferCriteriaRequest, db: SessionDep
+) -> AddJobOfferCriteriaResponse:
     offer = db.query(JobOffer).filter(JobOffer.id == offer_id).first()
     if not offer:
         raise HTTPException(status_code=404, detail="Offer not found")
     created_criteria: List[Criterion] = []
-    for item in request:
+    for item in request.criteria:
         new_criterion = Criterion(offer_id=offer_id, description=item.description, importance=item.importance)
         db.add(new_criterion)
         created_criteria.append(new_criterion)
