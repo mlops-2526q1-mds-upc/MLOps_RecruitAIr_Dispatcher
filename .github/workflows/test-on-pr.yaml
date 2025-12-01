@@ -6,8 +6,11 @@ on:
 
 
 jobs:
-  build:
+  run-tests:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,12 +27,76 @@ jobs:
         run: uv sync --locked --all-extras --dev
 
       - name: Run tests
+        id: run-tests
         run: |
           uv run coverage run -m pytest tests/
           uv run coverage html
+          COVERAGE_PERCENT=$(uv run coverage report | tail -1 | awk '{print $4}' | sed 's/%//')
+          echo "coverage=$COVERAGE_PERCENT" >> "$GITHUB_OUTPUT"
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v3
+        id: upload-coverage
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: htmlcov/*
+          path: htmlcov
+
+      - name: Add comment with coverage report link
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: "## :white_check_mark: Test Coverage Report"
+          message: |
+            ### All tests have passed!
+
+            ![Coverage Badge](https://img.shields.io/badge/coverage-${{ steps.run-tests.outputs.coverage }}-brightgreen)
+
+            You can download and view the test coverage report [here](${{ steps.upload-coverage.outputs.artifact-url }}).
+
+  test-build:
+    needs: run-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - id: lower-repo
+        shell: bash
+        run: echo "repository_owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Build API Image
+        uses: docker/build-push-action@v6
+        with:
+          push: false
+          target: api
+          cache-from: type=registry,ref=ghcr.io/${{ steps.lower-repo.outputs.repository_owner }}/recruitair/dispatcher-api:${{ steps.remove-v.outputs.tag }}
+          cache-to: type=inline
+
+      - name: Build Extractor Worker Image
+        uses: docker/build-push-action@v6
+        with:
+          push: false
+          target: extractor-worker
+          cache-from: type=registry,ref=ghcr.io/${{ steps.lower-repo.outputs.repository_owner }}/recruitair/dispatcher-extractor:${{ steps.remove-v.outputs.tag }}
+          cache-to: type=inline
+
+      - name: Build Evaluator Worker Image
+        uses: docker/build-push-action@v6
+        with:
+          push: false
+          target: evaluator-worker
+          cache-from: type=registry,ref=ghcr.io/${{ steps.lower-repo.outputs.repository_owner }}/recruitair/dispatcher-evaluator:${{ steps.remove-v.outputs.tag }}
+          cache-to: type=inline
+
+      - name: Build Database Migration Image
+        uses: docker/build-push-action@v6
+        with:
+          push: false
+          target: migration
+          cache-from: type=registry,ref=ghcr.io/${{ steps.lower-repo.outputs.repository_owner }}/recruitair/dispatcher-migration:${{ steps.remove-v.outputs.tag }}
+          cache-to: type=inline
