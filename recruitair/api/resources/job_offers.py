@@ -4,13 +4,9 @@ from typing import Any, Dict, List, Optional
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
-from ...database.models import JobOffer
+from ...database.models import JobOffer, JobOfferStatus
 from .. import SessionDep, app
-
-
-class JobOfferStatus(str, Enum):
-    PENDING = "PENDING"
-    DONE = "DONE"
+from ..schemas import JobOfferSchema
 
 
 class CreateJobOfferRequest(BaseModel):
@@ -21,13 +17,23 @@ class CreateJobOfferRequest(BaseModel):
     )
 
 
+class CreateJobOfferResponse(BaseModel):
+    message: str = Field(..., description="Response message", examples=["Created successfully"])
+    job_offer: JobOfferSchema = Field(..., description="Details of the created job offer")
+
+
 @app.post("/job_offers", tags=["Job Offers"])
-def create_job_offer(request: CreateJobOfferRequest, db: SessionDep):
+def create_job_offer(request: CreateJobOfferRequest, db: SessionDep) -> CreateJobOfferResponse:
     new_offer = JobOffer(text=request.text)
     db.add(new_offer)
     db.commit()
     db.refresh(new_offer)
-    return {"message": "Created successfully", "job_offer": new_offer}
+    return CreateJobOfferResponse(message="Created successfully", job_offer=new_offer)
+
+
+class ListJobOffersResponse(BaseModel):
+    job_offers: List[JobOfferSchema] = Field(..., description="List of job offers")
+    cursor: int = Field(..., description="Cursor for pagination")
 
 
 @app.get("/job_offers", tags=["Job Offers"])
@@ -37,7 +43,7 @@ def list_job_offers(
     offset: int = 0,
     text: Optional[str] = None,
     status: Optional[JobOfferStatus] = None,
-):
+) -> ListJobOffersResponse:
     query = db.query(JobOffer)
     if text:
         query = query.filter(JobOffer.text.contains(text))
@@ -46,12 +52,16 @@ def list_job_offers(
 
     results = query.order_by(JobOffer.id).offset(offset).limit(limit).all()
     cursor = offset + len(results)
-    return {"job_offers": results, "cursor": cursor}
+    return ListJobOffersResponse(job_offers=results, cursor=cursor)
+
+
+class GetJobOfferResponse(BaseModel):
+    job_offer: JobOfferSchema = Field(..., description="Details of the job offer")
 
 
 @app.get("/job_offers/{offer_id}", tags=["Job Offers"])
-def get_job_offer(offer_id: int, db: SessionDep):
+def get_job_offer(offer_id: int, db: SessionDep) -> GetJobOfferResponse:
     offer = db.query(JobOffer).filter(JobOffer.id == offer_id).first()
     if not offer:
         raise HTTPException(status_code=404, detail="Offer not found")
-    return {"job_offer": offer}
+    return GetJobOfferResponse(job_offer=offer)

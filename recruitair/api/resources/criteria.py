@@ -7,6 +7,7 @@ from recruitair.database.models.applicant_score import ApplicantScore
 
 from ...database.models import Criterion, JobOffer
 from .. import SessionDep, app
+from ..schemas import CriterionSchema
 
 
 class CriteriaItem(BaseModel):
@@ -16,17 +17,26 @@ class CriteriaItem(BaseModel):
     )
 
 
+class GetJobOfferCriteriaResponse(BaseModel):
+    criteria: List[CriterionSchema] = Field(..., description="List of criteria for the job offer")
+
+
 @app.get("/job_offers/{offer_id}/criteria", tags=["Criteria"])
-def get_job_offer_criteria(offer_id: int, db: SessionDep):
+def get_job_offer_criteria(offer_id: int, db: SessionDep) -> GetJobOfferCriteriaResponse:
     offer = db.query(JobOffer).filter(JobOffer.id == offer_id).first()
     if not offer:
         raise HTTPException(status_code=404, detail="Offer not found")
     criteria = db.query(Criterion).filter(Criterion.offer_id == offer_id).all()
-    return {"criteria": criteria}
+    return GetJobOfferCriteriaResponse(criteria=criteria)
+
+
+class AddJobOfferCriteriaResponse(BaseModel):
+    message: str = Field(..., description="Response message", examples=["Criteria added successfully"])
+    criteria: List[CriterionSchema] = Field(..., description="List of added criteria")
 
 
 @app.post("/job_offers/{offer_id}/criteria", tags=["Criteria"])
-def add_job_offer_criteria(offer_id: int, request: List[CriteriaItem], db: SessionDep):
+def add_job_offer_criteria(offer_id: int, request: List[CriteriaItem], db: SessionDep) -> AddJobOfferCriteriaResponse:
     offer = db.query(JobOffer).filter(JobOffer.id == offer_id).first()
     if not offer:
         raise HTTPException(status_code=404, detail="Offer not found")
@@ -36,7 +46,9 @@ def add_job_offer_criteria(offer_id: int, request: List[CriteriaItem], db: Sessi
         db.add(new_criterion)
         created_criteria.append(new_criterion)
     db.commit()
-    return {"message": "Criteria added successfully", "criteria": created_criteria}
+    for criterion in created_criteria:
+        db.refresh(criterion)
+    return AddJobOfferCriteriaResponse(message="Criteria added successfully", criteria=created_criteria)
 
 
 class UpdateCriterionRequest(BaseModel):
@@ -46,8 +58,15 @@ class UpdateCriterionRequest(BaseModel):
     )
 
 
+class UpdateCriterionResponse(BaseModel):
+    message: str = Field(..., description="Response message", examples=["Updated successfully"])
+    criterion: CriterionSchema = Field(..., description="Details of the updated criterion")
+
+
 @app.put("/job_offers/{offer_id}/criteria/{criterion_id}", tags=["Criteria"])
-def update_criterion(offer_id: int, criterion_id: int, request: UpdateCriterionRequest, db: SessionDep):
+def update_criterion(
+    offer_id: int, criterion_id: int, request: UpdateCriterionRequest, db: SessionDep
+) -> UpdateCriterionResponse:
     offer = db.query(JobOffer).filter(JobOffer.id == offer_id).first()
     if not offer:
         raise HTTPException(status_code=404, detail="Offer not found")
@@ -63,4 +82,4 @@ def update_criterion(offer_id: int, criterion_id: int, request: UpdateCriterionR
         criterion.importance = request.importance
     db.commit()
     db.refresh(criterion)
-    return {"message": "Updated successfully", "criterion": criterion}
+    return UpdateCriterionResponse(message="Updated successfully", criterion=criterion)
