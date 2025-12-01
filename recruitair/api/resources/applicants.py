@@ -47,7 +47,7 @@ class GetApplicantsResponse(BaseModel):
 
 
 @app.get("/job_offers/{offer_id}/applicants", tags=["Applicants"])
-def get_applicant(
+def get_applicants(
     offer_id: int, db: SessionDep, limit: int = 100, offset: int = 0, cv: Optional[str] = None
 ) -> GetApplicantsResponse:
     offer = db.query(JobOffer).filter(JobOffer.id == offer_id).first()
