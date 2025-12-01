@@ -46,3 +46,53 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+
+  test-build:
+    needs: run-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - id: lower-repo
+        shell: bash
+        run: echo "repository_owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Build API Image
+        uses: docker/build-push-action@v6
+        with:
+          push: false
+          target: api
+          cache-from: type=registry,ref=ghcr.io/${{ steps.lower-repo.outputs.repository_owner }}/recruitair/dispatcher-api:${{ steps.remove-v.outputs.tag }}
+          cache-to: type=inline
+
+      - name: Build Extractor Worker Image
+        uses: docker/build-push-action@v6
+        with:
+          push: false
+          target: extractor-worker
+          cache-from: type=registry,ref=ghcr.io/${{ steps.lower-repo.outputs.repository_owner }}/recruitair/dispatcher-extractor:${{ steps.remove-v.outputs.tag }}
+          cache-to: type=inline
+
+      - name: Build Evaluator Worker Image
+        uses: docker/build-push-action@v6
+        with:
+          push: false
+          target: evaluator-worker
+          cache-from: type=registry,ref=ghcr.io/${{ steps.lower-repo.outputs.repository_owner }}/recruitair/dispatcher-evaluator:${{ steps.remove-v.outputs.tag }}
+          cache-to: type=inline
+
+      - name: Build Database Migration Image
+        uses: docker/build-push-action@v6
+        with:
+          push: false
+          target: migration
+          cache-from: type=registry,ref=ghcr.io/${{ steps.lower-repo.outputs.repository_owner }}/recruitair/dispatcher-migration:${{ steps.remove-v.outputs.tag }}
+          cache-to: type=inline
