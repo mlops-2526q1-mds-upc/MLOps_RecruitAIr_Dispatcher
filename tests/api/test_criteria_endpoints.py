@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-# # ------------- APPLICANT TESTS ------------- #
+# # ------------- CRITERIA TESTS ------------- #
 
 
 def test_create_criteria(client: TestClient):
