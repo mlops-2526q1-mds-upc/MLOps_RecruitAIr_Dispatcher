@@ -60,16 +60,30 @@ def test_create_applicant_missing_fields(client: TestClient):
     } == response.json()
 
 
-# def test_get_applicant():
-#     response = client.get("/applicants")
-#     assert response.status_code == 200
-#     assert "applicants" in response.json()
+def test_get_applicants_for_offer(client: TestClient):
+    # Create a job offer first
+    response = client.post("/job_offers", json={"text": "Backend Engineer"})
+    offer_id = response.json()["job_offer"]["id"]
 
+    cv_texts = [
+        "Name: John Doe\nExperience: 5 years in backend development\nSkills: Python, FastAPI, SQLAlchemy",
+        "Name: Mary Anne\nExperience: 6 years in backend development\nSkills: Python, FastAPI, SQLAlchemy",
+    ]
 
-# def test_update_applicant():
-#     create = client.post("/applicants", json={"cv": {"name": "Jane Doe"}})
-#     applicant_id = create.json()["applicant"]["id"]
+    # Create applicants
+    client.post(f"/job_offers/{offer_id}/applicants", json={"applicants": [{"cv": cv} for cv in cv_texts]})
 
-#     response = client.put(f"/applicants/{applicant_id}", json={"scores": {"technical": 8, "communication": 7}})
-#     assert response.status_code == 200
-#     assert "Updated successfully" in response.json()["message"]
+    # Retrieve applicants
+    response = client.get(f"/job_offers/{offer_id}/applicants")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "applicants" in data
+    assert len(data["applicants"]) == len(cv_texts)
+    for cv_text, applicant in zip(cv_texts, data["applicants"]):
+        assert "cv" in applicant
+        assert "id" in applicant
+        assert "offer_id" in applicant
+        assert "created_at" in applicant
+        assert applicant["cv"] == cv_text
+        assert applicant["offer_id"] == offer_id
