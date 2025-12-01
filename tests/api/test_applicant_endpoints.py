@@ -87,3 +87,12 @@ def test_get_applicants_for_offer(client: TestClient):
         assert "created_at" in applicant
         assert applicant["cv"] == cv_text
         assert applicant["offer_id"] == offer_id
+
+
+def test_get_applicants_invalid_offer(client: TestClient):
+    invalid_offer_id = 9999
+
+    # Retrieve applicants
+    response = client.get(f"/job_offers/{invalid_offer_id}/applicants")
+    assert response.status_code == 404
+    assert "detail" in response.json()
