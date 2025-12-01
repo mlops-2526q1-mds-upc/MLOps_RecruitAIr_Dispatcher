@@ -38,6 +38,7 @@ jobs:
         id: upload-coverage
         uses: actions/upload-artifact@v4
         with:
+          name: coverage-report
           path: htmlcov
 
       - name: Add comment with coverage report link
