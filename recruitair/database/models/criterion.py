@@ -27,6 +27,11 @@ class CriterionSchema(BaseModel):
         examples=[0.8],
     )
     offer_id: int = Field(..., description="Identifier of the associated job offer", examples=[1])
+    created_at: datetime = Field(
+        ...,
+        description="Timestamp when the criterion was created",
+        examples=["2023-10-05T14:48:00.000Z"],
+    )
 
 
 class Criterion(Base):
@@ -44,4 +49,5 @@ class Criterion(Base):
             description=self.description,
             importance=self.importance,
             offer_id=self.offer_id,
+            created_at=self.created_at,
         )
