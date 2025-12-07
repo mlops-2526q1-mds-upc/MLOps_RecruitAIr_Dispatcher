@@ -2,7 +2,8 @@ import importlib.metadata
 import os
 from typing import Annotated
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Response
+from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, generate_latest
 from sqlalchemy.orm import Session
 
 from ..database import get_db_session
@@ -36,6 +37,17 @@ app = FastAPI(title="RecruitAIr API", version=app_version, openapi_tags=tags_met
 @app.get("/health", tags=["Health"])
 def health_check():
     return {"status": "ok"}
+
+
+@app.get("/metrics")
+def metrics() -> Response:
+    """
+    Expose Prometheus metrics in the OpenMetrics / Prometheus text format.
+
+    Prometheus will scrape this endpoint at /metrics.
+    """
+    data = generate_latest()
+    return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 
 
 from .resources import *
