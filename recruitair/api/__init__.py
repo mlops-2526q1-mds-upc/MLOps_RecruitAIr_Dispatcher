@@ -3,6 +3,7 @@ import os
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Response
+from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, generate_latest
 from sqlalchemy.orm import Session
 
@@ -31,7 +32,16 @@ except importlib.metadata.PackageNotFoundError:
 
 api_root_path = os.getenv("RECRUITAIR_API_ROOT_PATH", "")
 
+
 app = FastAPI(title="RecruitAIr API", version=app_version, openapi_tags=tags_metadata, root_path=api_root_path)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust this to your needs
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health", tags=["Health"])
