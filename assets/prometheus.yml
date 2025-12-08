@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+scrape_configs:
+  # Scrape your FastAPI service inside Docker
+  - job_name: "recruitair-dispatcher-api"
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - "dispatcher-api:8000"
