@@ -1,3 +1,4 @@
+import time
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -6,6 +7,20 @@ from pydantic import BaseModel, Field
 
 from ...database.models import JobOffer, JobOfferSchema, JobOfferStatus
 from .. import SessionDep, app
+from ..monitoring.job_offers import (
+    CREATE_OFFER_REQUESTS,
+    CREATE_OFFER_REQUESTS_ERRORS,
+    CREATE_OFFER_REQUESTS_TIME,
+    CREATE_OFFER_TEXT_LENGTH,
+    CREATED_OFFERS,
+    GET_OFFER_REQUESTS,
+    GET_OFFER_REQUESTS_ERRORS,
+    GET_OFFER_REQUESTS_TIME,
+    LIST_OFFERS_REQUESTS,
+    LIST_OFFERS_REQUESTS_ERRORS,
+    LIST_OFFERS_REQUESTS_TIME,
+    LIST_OFFERS_RETURNED_PER_REQUEST,
+)
 
 
 class CreateJobOfferRequest(BaseModel):
@@ -23,10 +38,21 @@ class CreateJobOfferResponse(BaseModel):
 
 @app.post("/job_offers", tags=["Job Offers"])
 def create_job_offer(request: CreateJobOfferRequest, db: SessionDep) -> CreateJobOfferResponse:
-    new_offer = JobOffer(text=request.text)
-    db.add(new_offer)
-    db.commit()
-    db.refresh(new_offer)
+    CREATE_OFFER_REQUESTS.inc()
+    time_start = time.monotonic()
+    try:
+        new_offer = JobOffer(text=request.text)
+        db.add(new_offer)
+        db.commit()
+        db.refresh(new_offer)
+    except Exception as e:
+        CREATE_OFFER_REQUESTS_ERRORS.inc()
+        raise e
+    finally:
+        elapsed_time = time.monotonic() - time_start
+        CREATE_OFFER_REQUESTS_TIME.observe(elapsed_time)
+    CREATE_OFFER_TEXT_LENGTH.observe(len(request.text))
+    CREATED_OFFERS.inc()
     return CreateJobOfferResponse(message="Created successfully", job_offer=new_offer.to_dict())
 
 
@@ -43,14 +69,24 @@ def list_job_offers(
     text: Optional[str] = None,
     status: Optional[JobOfferStatus] = None,
 ) -> ListJobOffersResponse:
-    query = db.query(JobOffer)
-    if text:
-        query = query.filter(JobOffer.text.contains(text))
-    if status:
-        query = query.filter(JobOffer.status == status)
+    LIST_OFFERS_REQUESTS.inc()
+    time_start = time.monotonic()
+    try:
+        query = db.query(JobOffer)
+        if text:
+            query = query.filter(JobOffer.text.contains(text))
+        if status:
+            query = query.filter(JobOffer.status == status)
 
-    results = query.order_by(JobOffer.id).offset(offset).limit(limit).all()
-    cursor = offset + len(results)
+        results = query.order_by(JobOffer.id).offset(offset).limit(limit).all()
+        cursor = offset + len(results)
+    except Exception as e:
+        LIST_OFFERS_REQUESTS_ERRORS.inc()
+        raise e
+    finally:
+        elapsed_time = time.monotonic() - time_start
+        LIST_OFFERS_REQUESTS_TIME.observe(elapsed_time)
+    LIST_OFFERS_RETURNED_PER_REQUEST.observe(len(results))
     return ListJobOffersResponse(job_offers=[offer.to_dict() for offer in results], cursor=cursor)
 
 
@@ -60,7 +96,16 @@ class GetJobOfferResponse(BaseModel):
 
 @app.get("/job_offers/{offer_id}", tags=["Job Offers"])
 def get_job_offer(offer_id: int, db: SessionDep) -> GetJobOfferResponse:
-    offer = db.query(JobOffer).filter(JobOffer.id == offer_id).first()
-    if not offer:
-        raise HTTPException(status_code=404, detail="Offer not found")
+    GET_OFFER_REQUESTS.inc()
+    time_start = time.monotonic()
+    try:
+        offer = db.query(JobOffer).filter(JobOffer.id == offer_id).first()
+        if not offer:
+            raise HTTPException(status_code=404, detail="Offer not found")
+    except Exception as e:
+        GET_OFFER_REQUESTS_ERRORS.inc()
+        raise e
+    finally:
+        elapsed_time = time.monotonic() - time_start
+        GET_OFFER_REQUESTS_TIME.observe(elapsed_time)
     return GetJobOfferResponse(job_offer=offer.to_dict())

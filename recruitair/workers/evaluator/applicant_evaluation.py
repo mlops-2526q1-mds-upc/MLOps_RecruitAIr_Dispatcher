@@ -1,9 +1,16 @@
+from datetime import datetime, timezone
+
 from aiohttp import ClientSession, ClientTimeout
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...database.models import Applicant, ApplicantScore, Criterion
 from . import logger, settings
+from .monitoring import (
+    evaluator_score_value,
+    evaluator_scores_computed,
+    evaluator_time_since_schedule,
+)
 
 
 class ApplicantEvaluationResponse(BaseModel):
@@ -33,3 +40,11 @@ async def evaluate_applicant(applicant: Applicant, criterion: Criterion, session
                 score=evaluation_response.score,
             )
             session.add(new_applicant_score)
+            evaluator_scores_computed.inc()
+            evaluator_score_value.observe(evaluation_response.score)
+            # The age is set by the minimum age between applicant and criterion
+            age_seconds = min(
+                (datetime.now(timezone.utc) - applicant.created_at).total_seconds(),
+                (datetime.now(timezone.utc) - criterion.created_at).total_seconds(),
+            )
+            evaluator_time_since_schedule.observe(age_seconds)

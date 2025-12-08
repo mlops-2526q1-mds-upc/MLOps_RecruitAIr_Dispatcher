@@ -1,3 +1,4 @@
+import time
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -12,6 +13,20 @@ from ...database.models import (
     JobOffer,
 )
 from .. import SessionDep, app
+from ..monitoring.scores import (
+    GET_SCORE_REQUESTS,
+    GET_SCORE_REQUESTS_ERRORS,
+    GET_SCORE_REQUESTS_TIME,
+    GET_SCORES_REQUESTS,
+    GET_SCORES_REQUESTS_ERRORS,
+    GET_SCORES_REQUESTS_TIME,
+    GET_SCORES_RETURNED_PER_REQUEST,
+    SCORE_VALUES,
+    UPDATE_SCORE_REQUESTS,
+    UPDATE_SCORE_REQUESTS_ERRORS,
+    UPDATE_SCORE_REQUESTS_TIME,
+    UPDATE_SCORE_VALUE_DIFFERENCE,
+)
 
 
 class GetApplicantScoresResponse(BaseModel):
@@ -20,18 +35,30 @@ class GetApplicantScoresResponse(BaseModel):
 
 @app.get("/job_offers/{offer_id}/applicants/{applicant_id}/scores", tags=["Scores"])
 def get_applicant_scores(offer_id: int, applicant_id: int, db: SessionDep) -> GetApplicantScoresResponse:
-    offer = db.query(JobOffer).filter(JobOffer.id == offer_id).first()
-    if not offer:
-        raise HTTPException(status_code=404, detail="Offer not found")
+    GET_SCORES_REQUESTS.inc()
+    time_start = time.monotonic()
+    try:
+        offer = db.query(JobOffer).filter(JobOffer.id == offer_id).first()
+        if not offer:
+            raise HTTPException(status_code=404, detail="Offer not found")
 
-    applicant = db.query(Applicant).filter(Applicant.id == applicant_id, Applicant.offer_id == offer_id).first()
+        applicant = db.query(Applicant).filter(Applicant.id == applicant_id, Applicant.offer_id == offer_id).first()
 
-    if not applicant:
-        raise HTTPException(status_code=404, detail="Applicant not found")
+        if not applicant:
+            raise HTTPException(status_code=404, detail="Applicant not found")
 
-    scores = db.query(ApplicantScore).filter(ApplicantScore.applicant_id == applicant_id).all()
-    if not scores:
-        raise HTTPException(status_code=404, detail="Scores not found for the applicant")
+        scores = db.query(ApplicantScore).filter(ApplicantScore.applicant_id == applicant_id).all()
+        if not scores:
+            raise HTTPException(status_code=404, detail="Scores not found for the applicant")
+        for score in scores:
+            SCORE_VALUES.observe(float(score.score))
+    except Exception as e:
+        GET_SCORES_REQUESTS_ERRORS.inc()
+        raise e
+    finally:
+        elapsed_time = time.monotonic() - time_start
+        GET_SCORES_REQUESTS_TIME.observe(elapsed_time)
+    GET_SCORES_RETURNED_PER_REQUEST.observe(len(scores))
 
     return GetApplicantScoresResponse(scores=[score.to_dict() for score in scores])
 
@@ -44,26 +71,36 @@ class GetApplicantScoreResponse(BaseModel):
 def get_applicant_score(
     offer_id: int, applicant_id: int, criterion_id: int, db: SessionDep
 ) -> GetApplicantScoreResponse:
-    offer = db.query(JobOffer).filter(JobOffer.id == offer_id).first()
-    if not offer:
-        raise HTTPException(status_code=404, detail="Offer not found")
+    GET_SCORE_REQUESTS.inc()
+    time_start = time.monotonic()
+    try:
+        offer = db.query(JobOffer).filter(JobOffer.id == offer_id).first()
+        if not offer:
+            raise HTTPException(status_code=404, detail="Offer not found")
 
-    applicant = db.query(Applicant).filter(Applicant.id == applicant_id, Applicant.offer_id == offer_id).first()
+        applicant = db.query(Applicant).filter(Applicant.id == applicant_id, Applicant.offer_id == offer_id).first()
 
-    if not applicant:
-        raise HTTPException(status_code=404, detail="Applicant not found")
+        if not applicant:
+            raise HTTPException(status_code=404, detail="Applicant not found")
 
-    criterion = db.query(Criterion).filter(Criterion.id == criterion_id, Criterion.offer_id == offer_id).first()
-    if not criterion:
-        raise HTTPException(status_code=404, detail="Criterion not found")
+        criterion = db.query(Criterion).filter(Criterion.id == criterion_id, Criterion.offer_id == offer_id).first()
+        if not criterion:
+            raise HTTPException(status_code=404, detail="Criterion not found")
 
-    score = (
-        db.query(ApplicantScore)
-        .filter(ApplicantScore.applicant_id == applicant_id, ApplicantScore.criteria_id == criterion_id)
-        .first()
-    )
-    if not score:
-        raise HTTPException(status_code=404, detail="Score has not been computed yet")
+        score = (
+            db.query(ApplicantScore)
+            .filter(ApplicantScore.applicant_id == applicant_id, ApplicantScore.criteria_id == criterion_id)
+            .first()
+        )
+        if not score:
+            raise HTTPException(status_code=404, detail="Score has not been computed yet")
+        SCORE_VALUES.observe(float(score.score))
+    except Exception as e:
+        GET_SCORE_REQUESTS_ERRORS.inc()
+        raise e
+    finally:
+        elapsed_time = time.monotonic() - time_start
+        GET_SCORE_REQUESTS_TIME.observe(elapsed_time)
 
     return GetApplicantScoreResponse(score=score.to_dict())
 
@@ -80,29 +117,39 @@ class UpdateApplicantScoreResponse(BaseModel):
 def update_applicant_score(
     offer_id: int, applicant_id: int, criterion_id: int, request: UpdateApplicantScoreRequest, db: SessionDep
 ) -> UpdateApplicantScoreResponse:
-    offer = db.query(JobOffer).filter(JobOffer.id == offer_id).first()
-    if not offer:
-        raise HTTPException(status_code=404, detail="Offer not found")
+    UPDATE_SCORE_REQUESTS.inc()
+    time_start = time.monotonic()
+    try:
+        offer = db.query(JobOffer).filter(JobOffer.id == offer_id).first()
+        if not offer:
+            raise HTTPException(status_code=404, detail="Offer not found")
 
-    applicant = db.query(Applicant).filter(Applicant.id == applicant_id, Applicant.offer_id == offer_id).first()
+        applicant = db.query(Applicant).filter(Applicant.id == applicant_id, Applicant.offer_id == offer_id).first()
 
-    if not applicant:
-        raise HTTPException(status_code=404, detail="Applicant not found")
+        if not applicant:
+            raise HTTPException(status_code=404, detail="Applicant not found")
 
-    criterion = db.query(Criterion).filter(Criterion.id == criterion_id, Criterion.offer_id == offer_id).first()
-    if not criterion:
-        raise HTTPException(status_code=404, detail="Criterion not found")
+        criterion = db.query(Criterion).filter(Criterion.id == criterion_id, Criterion.offer_id == offer_id).first()
+        if not criterion:
+            raise HTTPException(status_code=404, detail="Criterion not found")
 
-    score = (
-        db.query(ApplicantScore)
-        .filter(ApplicantScore.applicant_id == applicant_id, ApplicantScore.criteria_id == criterion_id)
-        .first()
-    )
-    if not score:
-        raise HTTPException(status_code=404, detail="Score has not been computed yet")
+        score = (
+            db.query(ApplicantScore)
+            .filter(ApplicantScore.applicant_id == applicant_id, ApplicantScore.criteria_id == criterion_id)
+            .first()
+        )
+        if not score:
+            raise HTTPException(status_code=404, detail="Score has not been computed yet")
 
-    score.score = request.score
-    db.commit()
-    db.refresh(score)
+        score.score = request.score
+        db.commit()
+        db.refresh(score)
+        UPDATE_SCORE_VALUE_DIFFERENCE.observe(request.score - float(score.score))
+    except Exception as e:
+        UPDATE_SCORE_REQUESTS_ERRORS.inc()
+        raise e
+    finally:
+        elapsed_time = time.monotonic() - time_start
+        UPDATE_SCORE_REQUESTS_TIME.observe(elapsed_time)
 
     return UpdateApplicantScoreResponse(score=score.to_dict())

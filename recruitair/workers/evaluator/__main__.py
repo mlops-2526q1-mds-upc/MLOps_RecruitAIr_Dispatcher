@@ -1,4 +1,6 @@
-from . import evaluator_worker
+from prometheus_client import start_http_server
+
+from . import evaluator_worker, settings
 
 if __name__ == "__main__":
     import asyncio
@@ -6,4 +8,6 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
 
+    if settings.expose_metrics:
+        start_http_server(settings.metrics_server_port)
     asyncio.run(evaluator_worker())

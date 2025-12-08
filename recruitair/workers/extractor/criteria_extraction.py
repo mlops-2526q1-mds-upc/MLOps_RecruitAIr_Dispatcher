@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import List
 
 from aiohttp import ClientSession, ClientTimeout
@@ -6,6 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...database.models import Criterion, JobOffer, JobOfferStatus
 from . import logger, settings
+from .monitoring import (
+    extractor_criteria_computed,
+    extractor_criteria_description_length,
+    extractor_criteria_importance_value,
+    extractor_time_since_schedule,
+)
 
 
 class CriteriaExtractionResponse(BaseModel):
@@ -39,5 +46,10 @@ async def extract_criteria(job_offer: JobOffer, session: AsyncSession) -> None:
                     description=criterion.description,
                     importance=criterion.importance,
                 )
+                extractor_criteria_description_length.observe(len(criterion.description))
+                extractor_criteria_importance_value.observe(criterion.importance)
+                extractor_criteria_computed.inc()
                 session.add(new_criterion)
             job_offer.status = JobOfferStatus.DONE
+            age_seconds = (datetime.now(timezone.utc) - job_offer.created_at).total_seconds()
+            extractor_time_since_schedule.observe(age_seconds)
