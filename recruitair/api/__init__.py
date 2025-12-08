@@ -39,7 +39,7 @@ def health_check():
     return {"status": "ok"}
 
 
-@app.get("/metrics")
+@app.get("/metrics", tags=["Health"])
 def metrics() -> Response:
     """
     Expose Prometheus metrics in the OpenMetrics / Prometheus text format.
