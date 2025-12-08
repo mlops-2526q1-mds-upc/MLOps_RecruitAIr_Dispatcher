@@ -8,12 +8,20 @@ CREATE_CRITERIA_REQUESTS_TIME = Histogram(
     "create_criteria_requests_time_seconds", "Time spent processing create criteria requests"
 )
 CREATE_CRITERIA_DESCRIPTION_LENGTH = Histogram(
-    "create_criteria_description_length", "Length of created criteria descriptions in API"
+    "create_criteria_description_length",
+    "Length of created criteria descriptions in API",
+    buckets=(10, 50, 100, 200, 500, 1000),
 )
-CREATE_CRITERIA_IMPORTANCE = Histogram("create_criteria_importance", "Importance of created criteria in API")
+CREATE_CRITERIA_IMPORTANCE = Histogram(
+    "create_criteria_importance",
+    "Importance of created criteria in API",
+    buckets=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0),
+)
 CRITERIA_CREATED = Counter("criteria_created_total", "Total number of criteria created")
 CRITERIA_CREATED_PER_REQUEST = Histogram(
-    "criteria_created_per_request", "Number of criteria created per create criteria request"
+    "criteria_created_per_request",
+    "Number of criteria created per create criteria request",
+    buckets=(1, 5, 10, 20, 50, 100, 200, 500, 1000),
 )
 
 
@@ -22,10 +30,13 @@ GET_CRITERIA_REQUESTS_ERRORS = Counter(
     "get_criteria_requests_errors_total", "Total number of get criteria requests that resulted in errors"
 )
 GET_CRITERIA_REQUESTS_TIME = Histogram(
-    "get_criteria_requests_time_seconds", "Time spent processing get criteria requests"
+    "get_criteria_requests_time_seconds",
+    "Time spent processing get criteria requests",
 )
 GET_CRITERIA_RETURNED_PER_REQUEST = Histogram(
-    "get_criteria_returned_per_request", "Number of criteria returned per get criteria request"
+    "get_criteria_returned_per_request",
+    "Number of criteria returned per get criteria request",
+    buckets=(1, 5, 10, 20, 50, 100, 200, 500, 1000),
 )
 
 
@@ -37,6 +48,12 @@ UPDATE_CRITERION_REQUESTS_TIME = Histogram(
     "update_criterion_requests_time_seconds", "Time spent processing update criterion requests"
 )
 UPDATE_CRITERION_DESCRIPTION_LENGTH = Histogram(
-    "update_criterion_description_length", "Length of updated criterion descriptions in API"
+    "update_criterion_description_length",
+    "Length of updated criterion descriptions in API",
+    buckets=(10, 50, 100, 200, 500, 1000),
 )
-UPDATE_CRITERION_IMPORTANCE = Histogram("update_criterion_importance", "Importance of updated criteria in API")
+UPDATE_CRITERION_IMPORTANCE = Histogram(
+    "update_criterion_importance",
+    "Importance of updated criteria in API",
+    buckets=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0),
+)
