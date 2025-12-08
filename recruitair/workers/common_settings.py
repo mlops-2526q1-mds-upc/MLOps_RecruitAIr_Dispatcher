@@ -13,3 +13,6 @@ class BaseWorkerSettings(BaseSettings):
 
     batch_size: int = Field(100, description="Number of tasks to process in a batch")
     interval_seconds: int = Field(10, description="Interval between task processing in seconds")
+
+    metrics_server_port: int = Field(8000, description="Port on which to expose Prometheus metrics")
+    expose_metrics: bool = Field(False, description="Whether to expose Prometheus metrics")

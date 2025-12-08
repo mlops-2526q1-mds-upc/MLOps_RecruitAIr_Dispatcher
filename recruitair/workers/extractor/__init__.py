@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 import traceback
 from typing import Sequence
 
@@ -14,6 +15,14 @@ settings = ExtractorWorkerSettings()
 from ...database import get_async_session
 from ...database.models import JobOffer, JobOfferStatus
 from .criteria_extraction import extract_criteria
+from .monitoring import (
+    extractor_batch_dispatch_duration,
+    extractor_batch_size,
+    extractor_failed_dispatches,
+    extractor_single_dispatch_duration,
+    extractor_timeouts,
+    extractor_total_dispatches,
+)
 
 
 async def get_batch(session: AsyncSession, batch_size: int) -> Sequence[JobOffer]:
@@ -29,13 +38,21 @@ async def get_batch(session: AsyncSession, batch_size: int) -> Sequence[JobOffer
 
 
 async def handle_job_offer(job_offer: JobOffer, session: AsyncSession):
+    extractor_total_dispatches.inc()
     try:
+        start_time = time.monotonic()
         await extract_criteria(job_offer, session)
+        extractor_single_dispatch_duration.observe(time.monotonic() - start_time)
+    except asyncio.TimeoutError:
+        logger.error(f"Timeout while extracting criteria for job offer id {job_offer.id}.")
+        extractor_timeouts.inc()
+        extractor_failed_dispatches.inc()
     except Exception as e:
         logger.error(f"Error processing job offer id {job_offer.id}: {e}")
         logger.error("Stack trace:")
         for line in traceback.format_exception(type(e), e, e.__traceback__):
             logger.error(line)
+        extractor_failed_dispatches.inc()
 
 
 async def extractor_worker():
@@ -48,9 +65,12 @@ async def extractor_worker():
         async with get_async_session() as session:
             batch = await get_batch(session, settings.batch_size)
             if batch:
+                extractor_batch_size.observe(len(batch))
                 logger.info(f"Dispatching job offers with ids {[job_offer.id for job_offer in batch]}.")
+                batch_start_time = time.monotonic()
                 tasks = [handle_job_offer(job_offer, session) for job_offer in batch]
                 await asyncio.gather(*tasks)
                 await session.commit()
+                extractor_batch_dispatch_duration.observe(time.monotonic() - batch_start_time)
 
         await asyncio.sleep(settings.interval_seconds)

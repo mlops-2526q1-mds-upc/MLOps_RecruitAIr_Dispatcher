@@ -46,6 +46,8 @@ services:
       <<: *default-environment
       RECRUITAIR_EXTRACTOR_API_BASE_URL: http://mock-api:3100/extractor/
       RECRUITAIR_EXTRACTOR_API_BEARER_TOKEN: mock_api_token
+      RECRUITAIR_EXPOSE_METRICS: "true"
+      RECRUITAIR_METRICS_SERVER_PORT: "8000"
     depends_on:
       database:
         condition: service_healthy
@@ -61,6 +63,8 @@ services:
       <<: *default-environment
       RECRUITAIR_EVALUATOR_API_BASE_URL: http://mock-api:3100/evaluator/
       RECRUITAIR_EVALUATOR_API_BEARER_TOKEN: mock_api_token
+      RECRUITAIR_EXPOSE_METRICS: "true"
+      RECRUITAIR_METRICS_SERVER_PORT: "8000"
     depends_on:
       database:
         condition: service_healthy

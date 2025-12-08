@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 import traceback
 from typing import Sequence, Tuple
 
@@ -14,9 +15,19 @@ settings = EvaluatorWorkerSettings()
 from ...database import get_async_session
 from ...database.models import Applicant, ApplicantScore, Criterion
 from .applicant_evaluation import evaluate_applicant
+from .monitoring import (
+    evaluator_batch_dispatch_duration,
+    evaluator_batch_obtaining_duration,
+    evaluator_batch_size,
+    evaluator_failed_dispatches,
+    evaluator_single_dispatch_duration,
+    evaluator_timeouts,
+    evaluator_total_dispatches,
+)
 
 
 async def get_batch(session: AsyncSession, batch_size: int) -> Sequence[Tuple[Applicant, Criterion]]:
+    start_time = time.monotonic()
     query = (
         select(Applicant, Criterion)
         .join(Criterion, Applicant.offer_id == Criterion.offer_id)
@@ -43,17 +54,27 @@ async def get_batch(session: AsyncSession, batch_size: int) -> Sequence[Tuple[Ap
         )
         if lock_acquired.scalar():
             batch.append((applicant, criterion))
+    if batch:
+        evaluator_batch_obtaining_duration.observe(time.monotonic() - start_time)
     return batch
 
 
 async def handle_applicant_score(applicant: Applicant, criterion: Criterion, session: AsyncSession):
+    evaluator_total_dispatches.inc()
     try:
+        start_time = time.monotonic()
         await evaluate_applicant(applicant, criterion, session)
+        evaluator_single_dispatch_duration.observe(time.monotonic() - start_time)
+    except asyncio.TimeoutError:
+        logger.error(f"Timeout while evaluating applicant id {applicant.id} for criterion id {criterion.id}.")
+        evaluator_timeouts.inc()
+        evaluator_failed_dispatches.inc()
     except Exception as e:
         logger.error(f"Error processing applicant id {applicant.id} and criterion id {criterion.id}: {e}")
         logger.error("Stack trace:")
         for line in traceback.format_exception(type(e), e, e.__traceback__):
             logger.error(line)
+        evaluator_failed_dispatches.inc()
 
 
 async def evaluator_worker():
@@ -66,11 +87,14 @@ async def evaluator_worker():
         async with get_async_session() as session:
             batch = await get_batch(session, settings.batch_size)
             if batch:
+                evaluator_batch_size.observe(len(batch))
                 logger.info(
                     f"Dispatching applicant and criterion pairs {', '.join(f'(a:{applicant.id}, c:{criterion.id})' for applicant, criterion in batch)}."
                 )
+                batch_start_time = time.monotonic()
                 tasks = [handle_applicant_score(applicant, criterion, session) for (applicant, criterion) in batch]
                 await asyncio.gather(*tasks)
                 await session.commit()
+                evaluator_batch_dispatch_duration.observe(time.monotonic() - batch_start_time)
 
             await asyncio.sleep(settings.interval_seconds)
